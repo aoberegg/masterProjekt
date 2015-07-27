@@ -13,11 +13,6 @@ import matplotlib.pyplot as pyplot
 matplotlib.rc('xtick', labelsize=2)
 matplotlib.rc('ytick', labelsize=2)
 
-class NetworkPanel:
-    def __init__(self, width, height):
-        self.width = width;
-        self.height = height;
-
 class Gui:
 
     def __init__(self):

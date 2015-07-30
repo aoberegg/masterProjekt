@@ -1,0 +1,123 @@
+
+from networkx import *
+import numpy as np
+from Candidate import Candidate
+from Globals import *
+
+class Voteomat:
+
+    def __init__(self):
+        self.minOrientation = -50
+        self.maxOrientation = 50
+        self.G = networkx.newman_watts_strogatz_graph(200, 4,0.5)
+        self.distributionFunc = self.set_nodes_political_behaviour_uniform_distributed
+        self.distributionFunc()
+        self.candidates = [];
+        self.candidates.append(Candidate(0))
+        self.candidates.append(Candidate(0))
+        self.acceptance = 0.05
+
+    def reset(self):
+        self.minOrientation = -50
+        self.maxOrientation = 50
+        self.G = networkx.newman_watts_strogatz_graph(200, 4,0.5)
+        self.distributionFunc()
+        self.candidates = [];
+        self.candidates.append(Candidate(0))
+        self.candidates.append(Candidate(0))
+        return
+
+    def set_acceptance(self, acceptance):
+        self.acceptance = acceptance
+
+    def set_distribution_func(self, func):
+        if func == g_uniform_distribution:
+            self.distributionFunc = self.set_nodes_political_behaviour_uniform_distributed
+        elif func == g_normal_distribution_left:
+            self.distributionFunc = self.set_nodes_political_behaviour_left_normal_distributed
+        elif func == g_normal_distribution_right:
+             self.distributionFunc = self.set_nodes_political_behaviour_right_normal_distributed
+        elif func == g_normal_distribution_avg:
+            self.distributionFunc = self.set_nodes_political_behaviour_normal_distributed
+        elif func == g_normal_left_and_right:
+            self.distributionFunc = self.set_nodes_political_behaviour_left_and_right_distributed
+
+        self.distributionFunc()
+
+    def get_network(self):
+        return self.G
+
+    def timestep_network_discussion(self):
+        for node in self.G.nodes(data=True):
+            neighbours = self.G.neighbors(node[0])
+            for neighbour_node in neighbours:
+                orientation_neighbour = self.G.nodes(data=True)[neighbour_node][1]["orientation"]
+                orientation_node = self.G.nodes(data=True)[node[0]][1]["orientation"]
+                abs_difference_orientation = abs(orientation_neighbour - orientation_node)
+                accepted_abs_difference = abs_difference_orientation * self.acceptance;
+                if orientation_neighbour > orientation_node:
+                    self.G.nodes(data=True)[neighbour_node][1]["orientation"] -= accepted_abs_difference
+                elif orientation_neighbour < orientation_node:
+                    self.G.nodes(data=True)[neighbour_node][1]["orientation"] += accepted_abs_difference
+
+    def set_nodes_political_behaviour_uniform_distributed(self):
+        for node in self.G.nodes(False):
+            self.G.node[node]["orientation"] = np.random.uniform(self.minOrientation, self.maxOrientation)
+
+    def set_max_value(self, value):
+        if value > 0:
+            value = min(value, 50)
+        if value < 0:
+            value = max(value, -50)
+        return value
+
+    def set_nodes_political_behaviour_normal_distributed(self):
+        for node in self.G.nodes(False):
+            value = np.random.normal((self.minOrientation + self.maxOrientation)/2, 10)
+            self.G.node[node]["orientation"] = self.set_max_value(value)
+
+    def set_nodes_political_behaviour_left_and_right_distributed(self):
+        for node in self.G.nodes(False):
+            left = np.random.uniform(0,1)
+            if(left < 0.5):
+                value = np.random.normal(self.minOrientation / 2, 10)
+            else:
+                value = np.random.normal(self.maxOrientation / 2, 10)
+            self.G.node[node]["orientation"] = self.set_max_value(value)
+
+    def set_nodes_political_behaviour_left_normal_distributed(self):
+        for node in self.G.nodes(False):
+            value = np.random.normal(self.minOrientation / 2, 10)
+            if value > 0:
+                value = min(value, 50)
+            if value < 0:
+                value = max(value, -50)
+            self.G.node[node]["orientation"] = self.set_max_value(value)
+
+    def set_nodes_political_behaviour_right_normal_distributed(self):
+        for node in self.G.nodes(False):
+            value = np.random.normal(self.maxOrientation / 2, 10)
+            if value > 0:
+                value = min(value, 50)
+            if value < 0:
+                value = max(value, -50)
+            self.G.node[node]["orientation"] = value
+
+    def set_orientation_candidate(self,candidate, new_value):
+        self.candidates[candidate].set_orientation(new_value)
+
+    def get_statistic(self):
+        orientation_list = []
+        for entry in self.G.nodes(data = True):
+            orientation_list.append(entry[1]['orientation'])
+        median = np.median(orientation_list)
+        avg = np.average(orientation_list)
+        std = np.std(orientation_list)
+        return median, avg, std
+
+    def get_amount_voter(self):
+        return len(self.G.nodes())
+
+
+if __name__ == '__main__':
+    v = Voteomat()

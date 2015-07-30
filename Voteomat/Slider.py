@@ -5,20 +5,21 @@ import pygame
 
 class Slider:
 
-    def __init__(self, x, y, text, gui, sug_func, sug_field, field_range, min_val = 0, is_int = False, is_percent = False):
+    def __init__(self, (x, y), text, gui, func, field, field_range, min_val = 0, is_int = False, is_percent = False):
         '''a slider that calls a function when it has moved'''
         self.min_val = min_val
         self.is_int = is_int
         self.is_percent = is_percent
-        self.sug_func = sug_func
-        self.sug_field = sug_field
-        self.sug_field_initial = self.sug_field
+        self.func = func
+        self.field = field
+        self.field_initial = self.field
         self.field_range = field_range
         self.gui = gui
         self.text = text
         
         self.slider_width, self.slider_height = 16,54
-        self.back_width, self.back_height = 150,18
+        self.back_width, self.back_height = 250,18
+
         self.slider_x = x-self.slider_width/2+self.back_width/2
         self.slider_y = y-self.slider_height/2 + self.back_height/2
 
@@ -54,7 +55,7 @@ class Slider:
         if not self.gui.clicked[self]:
             #get outta here
             return False
-            
+
         width = self.slider_width
         if x < (self.background_coords[0] + width/2): 
             x = self.background_coords[0] + width/2
@@ -66,7 +67,7 @@ class Slider:
         offset = width/2 + self.slider_coords[0] - (self.background_coords[2] + self.background_coords[0])/2
         
         percent = round(offset / float(self.background_coords[2] - self.background_coords[0] - width) + 1/2.,4) - .0001
-        new_val = (percent - .50) * (2*self.field_range) + self.sug_field_initial
+        new_val = (percent - .50) * (2*self.field_range) + self.field_initial
         if new_val < self.min_val:
             new_val = self.min_val
         if self.is_percent:
@@ -74,8 +75,28 @@ class Slider:
         if self.is_int:
             new_val = int(new_val)
             
-        self.sug_field = new_val
-        self.sug_func(self.sug_field)
+        self.field = new_val
+        self.func(self.field)
+        self.draw_slider()
+        return True
+
+    def update_slider(self, new_val):
+
+        new_val = round(new_val, 2)
+        if new_val > round(self.field_initial + self.field_range, 2):
+            return False
+        if new_val < round(self.field_initial - self.field_range,2):
+            return False
+
+        total_slider_width = self.background_coords[2] - self.background_coords[0] - self.slider_width
+        pos = new_val + self.field_range
+
+
+        x = int((pos/(self.field_range * 2))* (total_slider_width))+ self.background_coords[0]
+        self.slider_coords[0] = x
+        self.slider_coords[2] = x + self.slider_width
+        self.field = new_val
+        self.func(self.field)
         self.draw_slider()
         return True
 
@@ -84,14 +105,14 @@ class Slider:
         and the text on the gui'''
         x,y = self.background_coords[0], self.background_coords[1]
         if self.is_percent:
-            value = str(int(self.sug_field * 100)) + "%s" %"%"
+            value = str(int(self.field * 100)) + "%s" %"%"
             width_boost = 20
         elif self.is_int:
-            value = int(self.sug_field)
+            value = int(self.field)
         else:
-            value = round(self.sug_field,2)
+            value = round(self.field,2)
         pygame.draw.rect(self.gui.window,self.gui.background_color,(x,self.slider_y, self.back_width, self.slider_height))            
-        pygame.draw.rect(self.gui.window, self.gui.background_color, (x+self.back_width, y-self.slider_height/2 + self.back_height/2, 50, self.slider_height))             
+        pygame.draw.rect(self.gui.window, self.gui.background_color, (x+self.back_width, y-self.slider_height/2 + self.back_height/2, 50, self.slider_height))
         self.draw_text(x,y, str(value))
         pygame.draw.rect(self.gui.window, (0,150,250), (self.slider_coords[0], self.slider_coords[1], self.slider_width, self.slider_height))
         pygame.draw.rect(self.gui.window, (0,25,250), (self.slider_coords[0]+2, self.slider_coords[1]+2, self.slider_width-4, self.slider_height-4))

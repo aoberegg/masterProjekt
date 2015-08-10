@@ -13,3 +13,12 @@ g_normal_distribution_left = "Normal Distribution Left"
 g_normal_distribution_right = "Normal Distribution Right"
 g_normal_distribution_avg = "Normal Distribution Average"
 g_normal_left_and_right = "Normal Distribution left and right"
+
+
+g_newman_watts_strogats = "Newman-Watts-Strogats"
+g_random_regular = "Random regular"
+g_barabasi_albert = "Barabasi-Albert"
+g_random_powerlaw_tree = "Random powerlaw tree"
+
+g_amount_nodes = 200
+

@@ -68,6 +68,7 @@ class Gui:
         self.desktop = gui.Desktop()
         self.desktop.surf = self.window
         self.draw_distribution_listbox()
+        self.draw_network_listbox()
         self.draw_acceptance_text_box()
 
     def draw_acceptance_text_box(self):
@@ -81,7 +82,12 @@ class Gui:
         gui.ListBox(position = (g_gui_right_frame_start,520), size = (170, 100),parent = self.desktop,  items =[g_uniform_distribution,
                                                         g_normal_distribution_left, g_normal_distribution_right,
                                                         g_normal_distribution_avg, g_normal_left_and_right])\
-                                                        .onItemSelected=self.item_selected
+                                                        .onItemSelected=self.distribution_item_selected
+    def draw_network_listbox(self):
+         gui.ListBox(position = (g_gui_right_frame_start +180,520), size = (170, 100),parent = self.desktop,  items =[g_newman_watts_strogats,
+                                                        g_random_regular, g_barabasi_albert,
+                                                        g_random_powerlaw_tree])\
+                                                        .onItemSelected=self.network_item_selected
 
     def update_network(self):
         self.voteomat.timestep_network_discussion()
@@ -91,7 +97,11 @@ class Gui:
         self.draw_statistic()
         self.draw_histogram()
 
-    def item_selected(self, widget):
+    def network_item_selected(self, widget):
+        self.voteomat.set_network_func(str(widget.items[widget.selectedIndex]))
+        self.update_drawing()
+
+    def distribution_item_selected(self, widget):
         self.voteomat.set_distribution_func(str(widget.items[widget.selectedIndex]))
         self.update_drawing()
 

@@ -9,7 +9,8 @@ class Voteomat:
     def __init__(self):
         self.minOrientation = -50
         self.maxOrientation = 50
-        self.G = networkx.newman_watts_strogatz_graph(200, 4,0.5)
+        self.networkFunc = self.newman_watts_strogats
+        self.networkFunc()
         self.distributionFunc = self.set_nodes_political_behaviour_uniform_distributed
         self.distributionFunc()
         self.candidates = [];
@@ -20,12 +21,38 @@ class Voteomat:
     def reset(self):
         self.minOrientation = -50
         self.maxOrientation = 50
-        self.G = networkx.newman_watts_strogatz_graph(200, 4,0.5)
+        self.networkFunc()
         self.distributionFunc()
         self.candidates = [];
         self.candidates.append(Candidate(0))
         self.candidates.append(Candidate(0))
+        self.set_orientation_candidate(0, self.maxOrientation/2)
+        self.set_orientation_candidate(1, self.minOrientation/2)
         return
+
+    def set_network_func(self, func):
+        if func == g_newman_watts_strogats:
+            networkFunc = self.newman_watts_strogats
+        elif func == g_random_regular:
+            networkFunc = self.random_regular
+        elif func == g_barabasi_albert:
+            networkFunc = self.barabasi_albert
+        elif func == g_random_powerlaw_tree:
+            networkFunc = self.random_powerlaw_tree
+
+        self.reset()
+
+    def random_powerlaw_tree(self):
+        self.G = networkx.random_powerlaw_tree(g_amount_nodes)
+
+    def barabasi_albert(self):
+        self.G = networkx.barabasi_albert_graph(g_amount_nodes, 2)
+
+    def random_regular(self):
+        self.G = networkx.random_regular_graph(3,g_amount_nodes)
+
+    def newman_watts_strogats(self):
+        self.G = networkx.newman_watts_strogatz_graph(g_amount_nodes, 4,0.5)
 
     def set_acceptance(self, acceptance):
         self.acceptance = acceptance
@@ -56,9 +83,15 @@ class Voteomat:
                 abs_difference_orientation = abs(orientation_neighbour - orientation_node)
                 accepted_abs_difference = abs_difference_orientation * self.acceptance;
                 if orientation_neighbour > orientation_node:
-                    self.G.nodes(data=True)[neighbour_node][1]["orientation"] -= accepted_abs_difference
+                    self.G.nodes(data=True)[node[0]][1]["orientation"] -= accepted_abs_difference
                 elif orientation_neighbour < orientation_node:
-                    self.G.nodes(data=True)[neighbour_node][1]["orientation"] += accepted_abs_difference
+                    self.G.nodes(data=True)[node[0]][1]["orientation"] += accepted_abs_difference
+                if self.G.nodes(data=True)[node[0]][1]["orientation"] < 0:
+                    self.G.nodes(data=True)[node[0]][1]["orientation"] -= self.candidates[1].orientation * self.acceptance
+                else:
+                    self.G.nodes(data=True)[node[0]][1]["orientation"] += self.candidates[0].orientation * self.acceptance
+
+
 
     def set_nodes_political_behaviour_uniform_distributed(self):
         for node in self.G.nodes(False):

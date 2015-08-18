@@ -1,8 +1,8 @@
 __author__ = 'aoberegg'
 
 g_gui_width = 1400
-g_gui_height = 800
-g_gui_background = (100, 100, 100)
+g_gui_height = 900
+g_gui_background = (20,40,50)
 g_gui_right_frame_start = 975
 g_gui_left_frame_start = 0
 g_gui_top_space = 40

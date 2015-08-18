@@ -11,6 +11,8 @@ from networkx import *
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_agg as agg
 from Globals import *
+import defaultStyle
+
 
 class Gui:
 
@@ -47,45 +49,84 @@ class Gui:
         self.initial_draw_network()
         self.draw_histogram()
         self.draw_statistic()
+
         self.draw_settings()
-        pygame.display.flip()
+
 
 
         while True:
-            for e in gui.setEvents(pygame.event.get()):
-                self.handle_events(e)
-                self.desktop.update()
-                self.desktop.draw()
-
             if self.started:
                 self.update_network()
                 if self.timestep % 5 == 0:
                     self.update_drawing()
                 self.timestep += 1
                 self.update_slider()
-            pygame.display.update()
+
+            for e in gui.setEvents(pygame.event.get()):
+                self.handle_events(e)
+            self.desktop.update()
+            self.desktop.draw()
+
+            pygame.display.flip()
 
     def draw_settings(self):
+        defaultStyle.init(gui)
         self.desktop = gui.Desktop()
         self.desktop.surf = self.window
         self.draw_distribution_listbox()
         self.draw_network_listbox()
         self.draw_acceptance_text_box()
+        self.draw_neighbour_affecting_checkbox()
+        self.draw_candidates_affecting_checkbox()
+        self.draw_candidates_affected_checkbox()
+        self.draw_counter_force_affecting_checkbox()
+
+    def draw_candidates_affecting_checkbox(self):
+        self.write_text(g_gui_right_frame_start+20, 620, "Candidates affecting nodes", textsize = 14)
+        checkbox_candidates_affecting = gui.CheckBox(position = (g_gui_right_frame_start,620), size = (200,40), value = True, parent = self.desktop, text = "")
+        checkbox_candidates_affecting.onValueChanged = self.candidates_affecting_value_changed
+
+    def candidates_affecting_value_changed(self, checkbox_candidates_affecting):
+        self.voteomat.candidates_affecting = checkbox_candidates_affecting.value
+
+    def draw_candidates_affected_checkbox(self):
+        self.write_text(g_gui_right_frame_start+20, 640, "Candidates get affected by median node", textsize = 14)
+        checkbox_candidates_affected = gui.CheckBox(position = (g_gui_right_frame_start,640), size = (200,40), value = True, parent = self.desktop, text = "")
+        checkbox_candidates_affected.onValueChanged = self.candidates_affected_value_changed
+
+    def candidates_affected_value_changed(self, checkbox_candidates_affected):
+        self.voteomat.candidates_affected = checkbox_candidates_affected.value
+
+    def draw_neighbour_affecting_checkbox(self):
+        self.write_text(g_gui_right_frame_start+20, 660, "Neighbours affecting each other", textsize = 14)
+        checkbox_neighbours = gui.CheckBox(position = (g_gui_right_frame_start,660), size = (200,40), value = True, parent = self.desktop, text = "")
+        checkbox_neighbours.onValueChanged = self.affecting_neighbours_value_changed
+
+    def affecting_neighbours_value_changed(self, checkbox_neighbours):
+        self.voteomat.affecting_neighbours = checkbox_neighbours.value
+
+    def draw_counter_force_affecting_checkbox(self):
+        self.write_text(g_gui_right_frame_start+20, 680, "Counterforce affecting candidates", textsize = 14)
+        checkbox_counterforce_affecting = gui.CheckBox(position = (g_gui_right_frame_start,680), size = (200,40), value = True, parent = self.desktop, text = "")
+        checkbox_counterforce_affecting.onValueChanged = self.counterforce_affecting_value_changed
+
+    def counterforce_affecting_value_changed(self, checkbox_counterforce_affecting):
+        self.voteomat.counter_force_affecting = checkbox_counterforce_affecting.value
 
     def draw_acceptance_text_box(self):
-        self.write_text(g_gui_right_frame_start, 630, "Acceptance: ")
-        gui.TextBox(position = (g_gui_right_frame_start+100,630), size = (100,20), parent = self.desktop, text = str(self.voteomat.acceptance)).onMouseLeave = self.set_acceptance
+        self.write_text(g_gui_right_frame_start, 590, "Acceptance: ")
+        gui.TextBox(position = (g_gui_right_frame_start+100,590), size = (100,20), parent = self.desktop, text = str(self.voteomat.acceptance)).onMouseLeave = self.set_acceptance
 
     def set_acceptance(self, widget):
         self.voteomat.set_acceptance(round(float(widget.text),2))
 
     def draw_distribution_listbox(self):
-        gui.ListBox(position = (g_gui_right_frame_start,520), size = (170, 100),parent = self.desktop,  items =[g_uniform_distribution,
+        gui.ListBox(position = (g_gui_right_frame_start,480), size = (170, 100),parent = self.desktop,  items =[g_uniform_distribution,
                                                         g_normal_distribution_left, g_normal_distribution_right,
                                                         g_normal_distribution_avg, g_normal_left_and_right])\
                                                         .onItemSelected=self.distribution_item_selected
     def draw_network_listbox(self):
-         gui.ListBox(position = (g_gui_right_frame_start +180,520), size = (170, 100),parent = self.desktop,  items =[g_newman_watts_strogats,
+         gui.ListBox(position = (g_gui_right_frame_start +180,480), size = (170, 100),parent = self.desktop,  items =[g_newman_watts_strogats,
                                                         g_random_regular, g_barabasi_albert,
                                                         g_random_powerlaw_tree])\
                                                         .onItemSelected=self.network_item_selected
@@ -99,22 +140,24 @@ class Gui:
         self.draw_histogram()
 
     def network_item_selected(self, widget):
-        self.voteomat.set_network_func(str(widget.items[widget.selectedIndex]))
-        self.update_drawing()
+        if widget.selectedIndex < len(widget.items):
+            self.voteomat.set_network_func(str(widget.items[widget.selectedIndex]))
+            self.update_drawing()
 
     def distribution_item_selected(self, widget):
-        self.voteomat.set_distribution_func(str(widget.items[widget.selectedIndex]))
-        self.update_drawing()
+        if widget.selectedIndex < len(widget.items):
+            self.voteomat.set_distribution_func(str(widget.items[widget.selectedIndex]))
+            self.update_drawing()
 
 
     def draw_statistic(self):
         y = 370
         median, avg, std = self.voteomat.get_statistic()
         self.write_text(g_gui_right_frame_start, y, "Timestep: " + str(round(self.timestep,2)))
-        self.write_text(g_gui_right_frame_start, y+30, "Median: "+str(round(median, 2)))
-        self.write_text(g_gui_right_frame_start, y+60, "Avg.:   " + str(round(avg, 2)))
-        self.write_text(g_gui_right_frame_start, y+90, "#Voter:  " + str(round(self.voteomat.get_amount_voter(), 2)))
-        self.write_text(g_gui_right_frame_start, y+120, "Standard deviation: " + str(round(std, 2)))
+        self.write_text(g_gui_right_frame_start, y+20, "Median: "+str(round(median, 2)))
+        self.write_text(g_gui_right_frame_start, y+40, "Avg.:   " + str(round(avg, 2)))
+        self.write_text(g_gui_right_frame_start, y+60, "#Voter:  " + str(round(self.voteomat.get_amount_voter(), 2)))
+        self.write_text(g_gui_right_frame_start, y+80, "Standard deviation: " + str(round(std, 2)))
 
     def update_slider(self):
         self.slider1.update_slider(self.voteomat.candidates[0].orientation)
@@ -125,16 +168,30 @@ class Gui:
         Button((self.width-(self.width-180), (self.height-100)), self, 'Reset', func=self.reset, stay_depressed = False)
 
     def draw_slider(self):
-        self.slider1 = Slider((self.width-(self.width-50), (self.height-150)), "Political Orientation candidate 1", self,
+        self.slider1 = Slider((self.width-(self.width-50), (self.height-250)), "Political Orientation candidate 1", self,
                self.adjust_candidate1_orientation, self.voteomat.candidates[0].orientation, 50, -50)
-        self.slider2 = Slider((self.width-(self.width-400), (self.height-150)), "Political Orientation candidate 2", self,
+
+        self.slider2 = Slider((self.width-(self.width-400), (self.height-250)), "Political Orientation candidate 2", self,
                self.adjust_candidate2_orientation, self.voteomat.candidates[1].orientation, 50, -50)
+
+        self.slider3 = Slider((self.width-(self.width-50), (self.height-150)), "Counter force candidate 1", self,
+           self.adjust_counterforce_left, self.voteomat.counter_force_left, 50, -50)
+
+        self.slider4 = Slider((self.width-(self.width-400), (self.height-150)), "Counter force candidate 2", self,
+           self.adjust_counterforce_right, self.voteomat.counter_force_right, 50, -50)
+
 
     def adjust_candidate1_orientation(self, new_value):
         self.voteomat.set_orientation_candidate(0,new_value)
 
     def adjust_candidate2_orientation(self, new_value):
         self.voteomat.set_orientation_candidate(1,new_value)
+
+    def adjust_counterforce_left(self, new_value):
+        self.voteomat.counter_force_left = new_value
+
+    def adjust_counterforce_right(self, new_value):
+        self.voteomat.counter_force_right = new_value
 
     def get_node_color(self, G):
         node_color = []
@@ -240,10 +297,10 @@ class Gui:
             button.click_button(x,y)
         return False
 
-    def write_text(self, x, y, text):
+    def write_text(self, x, y, text, textsize = 14):
         '''writes text on the scape.
         puts a black box behind to erase last text'''
-        msg_object = pygame.font.SysFont('verdana', 18).render(text, False, (255,255,255))
+        msg_object = pygame.font.SysFont('verdana', textsize).render(text, False, (255,255,255))
         msg_rect = msg_object.get_rect()
         msg_rect.topleft = (x, y)
         pygame.draw.rect(self.window, self.background_color, (x, y, 10000, msg_rect.height))

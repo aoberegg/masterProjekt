@@ -16,7 +16,13 @@ class Voteomat:
         self.candidates = [];
         self.candidates.append(Candidate(0))
         self.candidates.append(Candidate(0))
+        self.counter_force_left = 0
+        self.counter_force_right = 0
         self.acceptance = 0.05
+        self.affecting_neighbours = True
+        self.candidates_affecting = True
+        self.candidates_affected = True
+        self.counter_force_affecting = True
 
     def reset(self):
         self.minOrientation = -50
@@ -76,29 +82,42 @@ class Voteomat:
 
     def timestep_network_discussion(self):
         for node in self.G.nodes(data=True):
-            neighbours = self.G.neighbors(node[0])
-            orientation_neighbours = 0
-            for neighbour_node in neighbours:
-                orientation_neighbours += self.G.nodes(data=True)[neighbour_node][1]["orientation"]
+            if self.affecting_neighbours:
+                self.neighbour_affect_each_other(node)
 
-            new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"], orientation_neighbours / len(neighbours))
+            if self.candidates_affecting:
+                self.candidates_affect_node(node)
 
-            if new_orientation > 0:
-                self.G.nodes(data=True)[node[0]][1]["orientation"] = min(new_orientation, self.maxOrientation)
-            else:
-                self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
+        if self.candidates_affected:
+            self.candidates_gets_affected()
 
 
-            if self.G.nodes(data=True)[node[0]][1]["orientation"] < 0:
-                new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"], self.candidates[1].orientation)
-                self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
-            else:
-                new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"] , self.candidates[0].orientation)
-                self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
 
+    def candidates_gets_affected(self):
         median, avg, std = self.get_statistic(True, False,False)
         self.set_candidate_new(self.candidates[0], median)
         self.set_candidate_new(self.candidates[1], median)
+
+
+    def candidates_affect_node(self, node):
+        if self.G.nodes(data=True)[node[0]][1]["orientation"] < 0:
+            new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"], self.candidates[1].orientation)
+            self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
+        else:
+            new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"] , self.candidates[0].orientation)
+            self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
+
+    def neighbour_affect_each_other(self, node):
+        neighbours = self.G.neighbors(node[0])
+
+        orientation_neighbours = 0
+        for neighbour_node in neighbours:
+            orientation_neighbours += self.G.nodes(data=True)[neighbour_node][1]["orientation"]
+        new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"], orientation_neighbours / len(neighbours))
+        if new_orientation > 0:
+            self.G.nodes(data=True)[node[0]][1]["orientation"] = min(new_orientation, self.maxOrientation)
+        else:
+            self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
 
     def calc_new_orientation(self, orientation_from, orientation_to):
         distance = abs(orientation_from - orientation_to)

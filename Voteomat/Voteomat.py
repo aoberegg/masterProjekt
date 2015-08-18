@@ -77,21 +77,39 @@ class Voteomat:
     def timestep_network_discussion(self):
         for node in self.G.nodes(data=True):
             neighbours = self.G.neighbors(node[0])
+            orientation_neighbours = 0
             for neighbour_node in neighbours:
-                orientation_neighbour = self.G.nodes(data=True)[neighbour_node][1]["orientation"]
-                orientation_node = self.G.nodes(data=True)[node[0]][1]["orientation"]
-                abs_difference_orientation = abs(orientation_neighbour - orientation_node)
-                accepted_abs_difference = abs_difference_orientation * self.acceptance;
-                if orientation_neighbour > orientation_node:
-                    self.G.nodes(data=True)[node[0]][1]["orientation"] -= accepted_abs_difference
-                elif orientation_neighbour < orientation_node:
-                    self.G.nodes(data=True)[node[0]][1]["orientation"] += accepted_abs_difference
-                if self.G.nodes(data=True)[node[0]][1]["orientation"] < 0:
-                    self.G.nodes(data=True)[node[0]][1]["orientation"] -= self.candidates[1].orientation * self.acceptance
-                else:
-                    self.G.nodes(data=True)[node[0]][1]["orientation"] += self.candidates[0].orientation * self.acceptance
+                orientation_neighbours += self.G.nodes(data=True)[neighbour_node][1]["orientation"]
+
+            new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"], orientation_neighbours / len(neighbours))
+
+            if new_orientation > 0:
+                self.G.nodes(data=True)[node[0]][1]["orientation"] = min(new_orientation, self.maxOrientation)
+            else:
+                self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
 
 
+            if self.G.nodes(data=True)[node[0]][1]["orientation"] < 0:
+                new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"], self.candidates[1].orientation)
+                self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
+            else:
+                new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"] , self.candidates[0].orientation)
+                self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
+
+        median, avg, std = self.get_statistic(True, False,False)
+        self.set_candidate_new(self.candidates[0], median)
+        self.set_candidate_new(self.candidates[1], median)
+
+    def calc_new_orientation(self, orientation_from, orientation_to):
+        distance = abs(orientation_from - orientation_to)
+        if orientation_from > orientation_to:
+            orientation_from -= distance * self.acceptance
+        else:
+            orientation_from += distance * self.acceptance
+        return orientation_from
+
+    def set_candidate_new(self, candidate, median):
+        candidate.orientation = self.calc_new_orientation(candidate.orientation, median)
 
     def set_nodes_political_behaviour_uniform_distributed(self):
         for node in self.G.nodes(False):
@@ -99,9 +117,9 @@ class Voteomat:
 
     def set_max_value(self, value):
         if value > 0:
-            value = min(value, 50)
+            value = min(value, self.maxOrientation)
         if value < 0:
-            value = max(value, -50)
+            value = max(value, self.minOrientation)
         return value
 
     def set_nodes_political_behaviour_normal_distributed(self):
@@ -130,23 +148,26 @@ class Voteomat:
     def set_nodes_political_behaviour_right_normal_distributed(self):
         for node in self.G.nodes(False):
             value = np.random.normal(self.maxOrientation / 2, 10)
-            if value > 0:
-                value = min(value, 50)
-            if value < 0:
-                value = max(value, -50)
-            self.G.node[node]["orientation"] = value
+            self.G.node[node]["orientation"] = self.set_max_value(value)
 
     def set_orientation_candidate(self,candidate, new_value):
         self.candidates[candidate].set_orientation(new_value)
 
-    def get_statistic(self):
+    def get_statistic(self, get_median = True, get_avg = True, get_std = True):
         orientation_list = []
         for entry in self.G.nodes(data = True):
             orientation_list.append(entry[1]['orientation'])
-        median = np.median(orientation_list)
-        avg = np.average(orientation_list)
-        std = np.std(orientation_list)
+        median = 0
+        avg = 0
+        std = 0
+        if(get_median):
+            median = np.median(orientation_list)
+        if(get_avg):
+            avg = np.average(orientation_list)
+        if(get_std):
+            std = np.std(orientation_list)
         return median, avg, std
+
 
     def get_amount_voter(self):
         return len(self.G.nodes())

@@ -14,9 +14,9 @@ from Globals import *
 
 class Gui:
 
-    def __init__(self,v):
+    def __init__(self):
         '''graphical representation of the sugarscape object'''
-        self.voteomat = v
+        self.voteomat = Voteomat()
         self.sliders = []
         self.buttons = []
         self.clicked = {}
@@ -40,6 +40,7 @@ class Gui:
         self.timestep = 0
         self.draw_buttons()
         self.draw_slider()
+
         self.voteomat.set_orientation_candidate(0, self.voteomat.maxOrientation/2)
         self.voteomat.set_orientation_candidate(1, self.voteomat.minOrientation/2)
         self.update_slider()
@@ -61,7 +62,7 @@ class Gui:
                 if self.timestep % 5 == 0:
                     self.update_drawing()
                 self.timestep += 1
-
+                self.update_slider()
             pygame.display.update()
 
     def draw_settings(self):
@@ -260,5 +261,4 @@ class Gui:
         pygame.display.flip()
 
 if __name__=='__main__':
-    v = Voteomat()
-    Gui(v)
+    Gui()

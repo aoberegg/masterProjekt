@@ -1,5 +1,7 @@
 import gui
 from pygame.locals import *
+import datetime
+from Statistic import *
 
 from Slider import *
 from Button import *
@@ -17,7 +19,6 @@ import defaultStyle
 class Gui:
 
     def __init__(self):
-        '''graphical representation of the sugarscape object'''
         self.voteomat = Voteomat()
         self.sliders = []
         self.buttons = []
@@ -52,13 +53,16 @@ class Gui:
 
         self.draw_settings()
 
-
-
+        self.make_new_statistic = True
         while True:
             if self.started:
+                if self.make_new_statistic:
+                    self.statistic = Statistic(str(datetime.datetime.now()), self.voteomat)
+                    self.make_new_statistic = False;
                 self.update_network()
                 if self.timestep % 5 == 0:
                     self.update_drawing()
+                self.statistic.writestatistic(self.voteomat)
                 self.timestep += 1
                 self.update_slider()
 
@@ -274,23 +278,19 @@ class Gui:
         return True
 
     def handle_slider_motion(self, x, y):
-        '''handles slider motion'''
         for slider in self.sliders:
             slider.move_slider(x,y)
         return False
 
     def release_all_sliders(self):
-        '''set all sliders to not grabbed'''
         for slider in self.sliders:
             slider.unclick_slider()
 
     def release_all_buttons(self):
-        '''releases all buttons'''
         for button in self.buttons:
             button.unclick_button()
 
     def handle_click(self,x,y):
-        '''handles all possible click events'''
         for slider in self.sliders:
             slider.click_slider(x,y)
         for button in self.buttons:
@@ -298,8 +298,6 @@ class Gui:
         return False
 
     def write_text(self, x, y, text, textsize = 14):
-        '''writes text on the scape.
-        puts a black box behind to erase last text'''
         msg_object = pygame.font.SysFont('verdana', textsize).render(text, False, (255,255,255))
         msg_rect = msg_object.get_rect()
         msg_rect.topleft = (x, y)
@@ -315,6 +313,7 @@ class Gui:
         self.initial_draw_network()
         self.draw_histogram()
         self.draw_statistic()
+        self.make_new_statistic = True
         pygame.display.flip()
 
 if __name__=='__main__':

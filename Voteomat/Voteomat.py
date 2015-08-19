@@ -9,13 +9,14 @@ class Voteomat:
     def __init__(self):
         self.minOrientation = -50
         self.maxOrientation = 50
+        self.network_func_name = g_newman_watts_strogats
         self.networkFunc = self.newman_watts_strogats
         self.networkFunc()
-        self.distributionFunc = self.set_nodes_political_behaviour_uniform_distributed
-        self.distributionFunc()
+        self.distribution_func_name = g_uniform_distribution
+        self.set_distribution_func()
         self.candidates = [];
-        self.candidates.append(Candidate(0))
-        self.candidates.append(Candidate(0))
+        self.candidates.append(Candidate(0, g_left_party))
+        self.candidates.append(Candidate(0, g_right_party))
         self.counter_force_left = 0
         self.counter_force_right = 0
         self.acceptance = 0.05
@@ -30,26 +31,26 @@ class Voteomat:
         self.networkFunc()
         self.distributionFunc()
         self.candidates = [];
-        self.candidates.append(Candidate(0))
-        self.candidates.append(Candidate(0))
+        self.candidates.append(Candidate(0, g_left_party))
+        self.candidates.append(Candidate(0, g_right_party))
         self.set_orientation_candidate(0, self.maxOrientation/2)
         self.set_orientation_candidate(1, self.minOrientation/2)
         return
 
     def set_network_func(self, func):
         if func == g_newman_watts_strogats:
-            networkFunc = self.newman_watts_strogats
+            self.networkFunc = self.newman_watts_strogats
         elif func == g_random_regular:
-            networkFunc = self.random_regular
+            self.networkFunc = self.random_regular
         elif func == g_barabasi_albert:
-            networkFunc = self.barabasi_albert
+            self.networkFunc = self.barabasi_albert
         elif func == g_random_powerlaw_tree:
-            networkFunc = self.random_powerlaw_tree
-
+            self.networkFunc = self.random_powerlaw_tree
+        self.network_func_name = func
         self.reset()
 
     def random_powerlaw_tree(self):
-        self.G = networkx.random_powerlaw_tree(g_amount_nodes)
+        self.G = networkx.random_powerlaw_tree(g_amount_nodes, tries= 1000)
 
     def barabasi_albert(self):
         self.G = networkx.barabasi_albert_graph(g_amount_nodes, 2)
@@ -63,7 +64,10 @@ class Voteomat:
     def set_acceptance(self, acceptance):
         self.acceptance = acceptance
 
-    def set_distribution_func(self, func):
+    def set_distribution_func(self, func = None):
+        if func is None:
+            func = self.distribution_func_name
+
         if func == g_uniform_distribution:
             self.distributionFunc = self.set_nodes_political_behaviour_uniform_distributed
         elif func == g_normal_distribution_left:
@@ -74,7 +78,7 @@ class Voteomat:
             self.distributionFunc = self.set_nodes_political_behaviour_normal_distributed
         elif func == g_normal_left_and_right:
             self.distributionFunc = self.set_nodes_political_behaviour_left_and_right_distributed
-
+        self.distribution_func_name = func
         self.distributionFunc()
 
     def get_network(self):
@@ -89,11 +93,20 @@ class Voteomat:
                 self.candidates_affect_node(node)
 
         if self.candidates_affected:
-            self.candidates_gets_affected()
+            self.candidates_get_affected_by_median()
+
+        if self.counter_force_affecting:
+            self.candidates_get_affected_by_counterforce()
 
 
+    def candidates_get_affected_by_counterforce(self):
+        for candidate in self.candidates:
+            if candidate.party == g_left_party:
+                self.set_candidate_new(candidate, self.counter_force_left)
+            elif candidate.party == g_right_party:
+                self.set_candidate_new(candidate, self.counter_force_right)
 
-    def candidates_gets_affected(self):
+    def candidates_get_affected_by_median(self):
         median, avg, std = self.get_statistic(True, False,False)
         self.set_candidate_new(self.candidates[0], median)
         self.set_candidate_new(self.candidates[1], median)

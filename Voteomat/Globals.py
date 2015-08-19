@@ -22,3 +22,6 @@ g_random_powerlaw_tree = "Random powerlaw tree"
 
 g_amount_nodes = 200
 
+g_left_party = 1
+g_right_party = 2
+

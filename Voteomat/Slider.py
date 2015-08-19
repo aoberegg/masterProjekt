@@ -36,7 +36,7 @@ class Slider:
         next to the slider'''
         self.msg_object = pygame.font.SysFont('verdana', fontsize).render(str(value), False, color)
         self.msg_rect = self.msg_object.get_rect()
-        self.msg_rect.topleft = (x + self.back_width + 2, y - 6)
+        self.msg_rect.topleft = (x + self.back_width, y - 6)
         self.gui.window.blit(self.msg_object, self.msg_rect)
         
         
@@ -110,8 +110,8 @@ class Slider:
         elif self.is_int:
             value = int(self.field)
         else:
-            value = round(self.field,2)
-        pygame.draw.rect(self.gui.window,self.gui.background_color,(x,self.slider_y, self.back_width, self.slider_height))            
+            value = round(self.field,1)
+        pygame.draw.rect(self.gui.window, self.gui.background_color,(x,self.slider_y, self.back_width, self.slider_height))
         pygame.draw.rect(self.gui.window, self.gui.background_color, (x+self.back_width, y-self.slider_height/2 + self.back_height/2, 50, self.slider_height))
         self.draw_text(x,y, str(value))
         pygame.draw.rect(self.gui.window, (0,150,250), (self.slider_coords[0], self.slider_coords[1], self.slider_width, self.slider_height))

@@ -24,6 +24,7 @@ class Voteomat:
         self.candidates_affecting = True
         self.candidates_affected = True
         self.counter_force_affecting = True
+        self.statistic_up_to_date = False
 
     def reset(self):
         self.minOrientation = -50
@@ -97,6 +98,7 @@ class Voteomat:
 
         if self.counter_force_affecting:
             self.candidates_get_affected_by_counterforce()
+        self.statistic_up_to_date = False
 
 
     def candidates_get_affected_by_counterforce(self):
@@ -186,6 +188,8 @@ class Voteomat:
         self.candidates[candidate].set_orientation(new_value)
 
     def get_statistic(self, get_median = True, get_avg = True, get_std = True):
+        if self.statistic_up_to_date:
+            return self.median, self.avg, self.std
         orientation_list = []
         for entry in self.G.nodes(data = True):
             orientation_list.append(entry[1]['orientation'])
@@ -198,6 +202,10 @@ class Voteomat:
             avg = np.average(orientation_list)
         if(get_std):
             std = np.std(orientation_list)
+        self.median = median
+        self.avg = avg
+        self.std = std
+        self.statistic_up_to_date = True
         return median, avg, std
 
 

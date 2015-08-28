@@ -31,11 +31,12 @@ class Voteomat:
         self.maxOrientation = 50
         self.networkFunc()
         self.distributionFunc()
-        self.candidates = [];
-        self.candidates.append(Candidate(0, g_left_party))
-        self.candidates.append(Candidate(0, g_right_party))
-        self.set_orientation_candidate(0, self.maxOrientation/2)
-        self.set_orientation_candidate(1, self.minOrientation/2)
+        for candidate in self.candidates:
+            candidate.reset()
+
+        self.set_orientation_candidate(0, self.maxOrientation/2, False)
+        self.set_orientation_candidate(1, self.minOrientation/2, False)
+        self.statistic_up_to_date = False
         return
 
     def set_network_func(self, func):
@@ -47,17 +48,22 @@ class Voteomat:
             self.networkFunc = self.barabasi_albert
         elif func == g_random_powerlaw_tree:
             self.networkFunc = self.random_powerlaw_tree
+        elif func == g_star_network:
+            self.networkFunc = self.star_network
         self.network_func_name = func
         self.reset()
 
     def random_powerlaw_tree(self):
-        self.G = networkx.random_powerlaw_tree(g_amount_nodes, tries= 1000)
+        self.G = networkx.random_powerlaw_tree(g_amount_nodes, tries= 10000)
 
     def barabasi_albert(self):
         self.G = networkx.barabasi_albert_graph(g_amount_nodes, 2)
 
     def random_regular(self):
         self.G = networkx.random_regular_graph(3,g_amount_nodes)
+
+    def star_network(self):
+        self.G = networkx.star_graph(g_amount_nodes-1)
 
     def newman_watts_strogats(self):
         self.G = networkx.newman_watts_strogatz_graph(g_amount_nodes, 4,0.5)
@@ -86,35 +92,42 @@ class Voteomat:
         return self.G
 
     def timestep_network_discussion(self):
+        change = 0
         for node in self.G.nodes(data=True):
             if self.affecting_neighbours:
-                self.neighbour_affect_each_other(node)
+                change += self.neighbour_affect_each_other(node)
 
             if self.candidates_affecting:
-                self.candidates_affect_node(node)
+                change += self.candidates_affect_node(node)
 
         if self.candidates_affected:
-            self.candidates_get_affected_by_median()
+            change += self.candidates_get_affected_by_median()
 
         if self.counter_force_affecting:
-            self.candidates_get_affected_by_counterforce()
+            change += self.candidates_get_affected_by_counterforce()
         self.statistic_up_to_date = False
+        return change
 
 
     def candidates_get_affected_by_counterforce(self):
+        change = 0
         for candidate in self.candidates:
             if candidate.party == g_left_party:
-                self.set_candidate_new(candidate, self.counter_force_left)
+                change += self.set_candidate_new(candidate, self.counter_force_left)
             elif candidate.party == g_right_party:
-                self.set_candidate_new(candidate, self.counter_force_right)
+                change += self.set_candidate_new(candidate, self.counter_force_right)
+        return change
 
     def candidates_get_affected_by_median(self):
         median, avg, std = self.get_statistic(True, False,False)
-        self.set_candidate_new(self.candidates[0], median)
-        self.set_candidate_new(self.candidates[1], median)
+        change = 0
+        change += self.set_candidate_new(self.candidates[0], median)
+        change += self.set_candidate_new(self.candidates[1], median)
+        return change
 
 
     def candidates_affect_node(self, node):
+        old_orientation = self.G.nodes(data=True)[node[0]][1]["orientation"]
         if self.G.nodes(data=True)[node[0]][1]["orientation"] < 0:
             new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"], self.candidates[1].orientation)
             self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
@@ -122,9 +135,11 @@ class Voteomat:
             new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"] , self.candidates[0].orientation)
             self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
 
+        return abs(old_orientation - new_orientation)
+
     def neighbour_affect_each_other(self, node):
         neighbours = self.G.neighbors(node[0])
-
+        old_orientation = self.G.nodes(data=True)[node[0]][1]["orientation"]
         orientation_neighbours = 0
         for neighbour_node in neighbours:
             orientation_neighbours += self.G.nodes(data=True)[neighbour_node][1]["orientation"]
@@ -133,6 +148,8 @@ class Voteomat:
             self.G.nodes(data=True)[node[0]][1]["orientation"] = min(new_orientation, self.maxOrientation)
         else:
             self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
+
+        return abs(old_orientation - new_orientation)
 
     def calc_new_orientation(self, orientation_from, orientation_to):
         distance = abs(orientation_from - orientation_to)
@@ -143,7 +160,9 @@ class Voteomat:
         return orientation_from
 
     def set_candidate_new(self, candidate, median):
+        orientation_old = candidate.orientation
         candidate.orientation = self.calc_new_orientation(candidate.orientation, median)
+        return abs(orientation_old - candidate.orientation)
 
     def set_nodes_political_behaviour_uniform_distributed(self):
         for node in self.G.nodes(False):
@@ -184,8 +203,8 @@ class Voteomat:
             value = np.random.normal(self.maxOrientation / 2, 10)
             self.G.node[node]["orientation"] = self.set_max_value(value)
 
-    def set_orientation_candidate(self,candidate, new_value):
-        self.candidates[candidate].set_orientation(new_value)
+    def set_orientation_candidate(self,candidate, new_value, save_in_list = True):
+        self.candidates[candidate].set_orientation(new_value, save_in_list)
 
     def get_statistic(self, get_median = True, get_avg = True, get_std = True):
         if self.statistic_up_to_date:

@@ -95,8 +95,9 @@ class Slider:
         x = int((pos/(self.field_range * 2))* (total_slider_width))+ self.background_coords[0]
         self.slider_coords[0] = x
         self.slider_coords[2] = x + self.slider_width
+        self.func(new_val)
         self.field = new_val
-        self.func(self.field)
+
         self.draw_slider()
         return True
 

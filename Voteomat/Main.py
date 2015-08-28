@@ -1,5 +1,6 @@
 import gui
 from pygame.locals import *
+from pygame import font
 import datetime
 from Statistic import *
 
@@ -14,11 +15,14 @@ import matplotlib.pyplot as plt
 import matplotlib.backends.backend_agg as agg
 from Globals import *
 import defaultStyle
+import time
 
 
 class Gui:
 
     def __init__(self):
+        self.make_new_statistic = True
+        self.init_change = 0
         self.voteomat = Voteomat()
         self.sliders = []
         self.buttons = []
@@ -44,27 +48,37 @@ class Gui:
         self.draw_buttons()
         self.draw_slider()
 
-        self.voteomat.set_orientation_candidate(0, self.voteomat.maxOrientation/2)
-        self.voteomat.set_orientation_candidate(1, self.voteomat.minOrientation/2)
+        self.voteomat.candidates[0].orientation = self.voteomat.maxOrientation/2
+        self.voteomat.candidates[1].orientation = self.voteomat.minOrientation/2
         self.update_slider()
+        self.counterforce_update_slider()
         self.initial_draw_network()
         self.draw_histogram()
         self.draw_statistic()
 
         self.draw_settings()
 
-        self.make_new_statistic = True
+        style = {'font-color': (240,15,15), 'font': font.Font(None,18), 'autosize': True, "antialias": True,
+                          'border-width': False, 'border-color': (0,0,0), 'wordwrap': False}
+        self.converged_label = gui.Label((self.width-(self.width-50), self.height-20),style = style, parent = self.desktop, text = g_gui_text_converged)
+        self.converged_label.visible = False
         while True:
             if self.started:
-                if self.make_new_statistic:
-                    self.statistic = Statistic(str(datetime.datetime.now()), self.voteomat)
-                    self.make_new_statistic = False;
-                self.update_network()
-                if self.timestep % 5 == 0:
-                    self.update_drawing()
-                self.statistic.writestatistic(self.voteomat)
+                change = self.voteomat.timestep_network_discussion()
+
+                self.check_statistic()
+
+                self.update_surface()
+
+                if not self.init_change:
+                    self.init_change = change
+                else:
+                    self.check_converged(change)
+
                 self.timestep += 1
-                self.update_slider()
+
+            else:
+                time.sleep(0.1)
 
             for e in gui.setEvents(pygame.event.get()):
                 self.handle_events(e)
@@ -72,6 +86,28 @@ class Gui:
             self.desktop.draw()
 
             pygame.display.flip()
+
+    def check_converged(self, change):
+        a,b, std = self.voteomat.get_statistic(False, False, True)
+        if self.init_change * 0.1 > change and std < .1:
+            self.started = False
+            self.statistic.network_converged(self.voteomat)
+            self.make_new_statistic = True;
+            self.converged_label.visible = True
+
+    def update_surface(self):
+        if self.timestep % 5 == 0:
+            self.update_drawing()
+
+        self.update_slider()
+
+    def check_statistic(self):
+        if self.make_new_statistic:
+            self.statistic = Statistic(str(datetime.datetime.now()), self.voteomat)
+            self.make_new_statistic = False;
+
+        self.statistic.write_statistic(self.voteomat)
+
 
     def draw_settings(self):
         defaultStyle.init(gui)
@@ -86,7 +122,7 @@ class Gui:
         self.draw_counter_force_affecting_checkbox()
 
     def draw_candidates_affecting_checkbox(self):
-        self.write_text(g_gui_right_frame_start+20, 620, "Candidates affecting nodes", textsize = 14)
+        self.write_text(g_gui_right_frame_start+20, 620, g_candidates_affecting_nodes, textsize = 14)
         checkbox_candidates_affecting = gui.CheckBox(position = (g_gui_right_frame_start,620), size = (200,40), value = True, parent = self.desktop, text = "")
         checkbox_candidates_affecting.onValueChanged = self.candidates_affecting_value_changed
 
@@ -94,7 +130,7 @@ class Gui:
         self.voteomat.candidates_affecting = checkbox_candidates_affecting.value
 
     def draw_candidates_affected_checkbox(self):
-        self.write_text(g_gui_right_frame_start+20, 640, "Candidates get affected by median node", textsize = 14)
+        self.write_text(g_gui_right_frame_start+20, 640, g_candidates_affected_by_median, textsize = 14)
         checkbox_candidates_affected = gui.CheckBox(position = (g_gui_right_frame_start,640), size = (200,40), value = True, parent = self.desktop, text = "")
         checkbox_candidates_affected.onValueChanged = self.candidates_affected_value_changed
 
@@ -102,7 +138,7 @@ class Gui:
         self.voteomat.candidates_affected = checkbox_candidates_affected.value
 
     def draw_neighbour_affecting_checkbox(self):
-        self.write_text(g_gui_right_frame_start+20, 660, "Neighbours affecting each other", textsize = 14)
+        self.write_text(g_gui_right_frame_start+20, 660, g_neighbours_affecting_each_other, textsize = 14)
         checkbox_neighbours = gui.CheckBox(position = (g_gui_right_frame_start,660), size = (200,40), value = True, parent = self.desktop, text = "")
         checkbox_neighbours.onValueChanged = self.affecting_neighbours_value_changed
 
@@ -110,7 +146,7 @@ class Gui:
         self.voteomat.affecting_neighbours = checkbox_neighbours.value
 
     def draw_counter_force_affecting_checkbox(self):
-        self.write_text(g_gui_right_frame_start+20, 680, "Counterforce affecting candidates", textsize = 14)
+        self.write_text(g_gui_right_frame_start+20, 680, g_counterforce_affecting_candidates, textsize = 14)
         checkbox_counterforce_affecting = gui.CheckBox(position = (g_gui_right_frame_start,680), size = (200,40), value = True, parent = self.desktop, text = "")
         checkbox_counterforce_affecting.onValueChanged = self.counterforce_affecting_value_changed
 
@@ -130,13 +166,9 @@ class Gui:
                                                         g_normal_distribution_avg, g_normal_left_and_right])\
                                                         .onItemSelected=self.distribution_item_selected
     def draw_network_listbox(self):
-         gui.ListBox(position = (g_gui_right_frame_start +180,480), size = (170, 100),parent = self.desktop,  items =[g_newman_watts_strogats,
-                                                        g_random_regular, g_barabasi_albert,
-                                                        g_random_powerlaw_tree])\
+         gui.ListBox(position = (g_gui_right_frame_start +180,480), size = (170, 100),parent = self.desktop,  items =g_networklist)\
                                                         .onItemSelected=self.network_item_selected
 
-    def update_network(self):
-        self.voteomat.timestep_network_discussion()
 
     def update_drawing(self):
         self.draw_network()
@@ -167,9 +199,14 @@ class Gui:
         self.slider1.update_slider(self.voteomat.candidates[0].orientation)
         self.slider2.update_slider(self.voteomat.candidates[1].orientation)
 
+    def counterforce_update_slider(self):
+        self.slider3.update_slider(self.voteomat.maxOrientation)
+        self.slider4.update_slider(self.voteomat.minOrientation)
+
     def draw_buttons(self):
-        Button((self.width-(self.width-50), (self.height-100)), self, 'Start', func=self.start, stay_depressed = True)
-        Button((self.width-(self.width-180), (self.height-100)), self, 'Reset', func=self.reset, stay_depressed = False)
+        Button((self.width-(self.width-50), (self.height-100)), self, 'Start', func=self.start, stay_depressed = False)
+        Button((self.width-(self.width-180), (self.height-100)), self, 'Stop', func=self.stop, stay_depressed = False)
+        Button((self.width-(self.width-310), (self.height-100)), self, 'Reset', func=self.reset, stay_depressed = False)
 
     def draw_slider(self):
         self.slider1 = Slider((self.width-(self.width-50), (self.height-250)), "Political Orientation candidate 1", self,
@@ -186,6 +223,7 @@ class Gui:
 
 
     def adjust_candidate1_orientation(self, new_value):
+
         self.voteomat.set_orientation_candidate(0,new_value)
 
     def adjust_candidate2_orientation(self, new_value):
@@ -220,6 +258,8 @@ class Gui:
         fig = plt.figure(1, figsize=(4, 4))
         self.ax = fig.gca()
         self.ax.hist(orientation_list, 20, normed=False)
+        plt.xlabel("Orientation")
+        plt.ylabel("#Nodes")
         plt.suptitle("Voting distribution")
 
         self.canvas = agg.FigureCanvasAgg(fig)
@@ -230,6 +270,8 @@ class Gui:
         self.canvas_width_height = self.canvas.get_width_height()
         surf = pygame.image.fromstring(raw_data, self.canvas_width_height, "RGB")
         self.network_screen.blit(surf, (g_gui_right_frame_start, g_gui_top_space))
+        if not self.make_new_statistic:
+            self.statistic.save_histogram(fig, self.timestep)
         plt.close()
 
     def draw_network(self):
@@ -245,6 +287,8 @@ class Gui:
         self.canvas_width_height = self.canvas.get_width_height()
         surf = pygame.image.fromstring(raw_data, self.canvas_width_height, "RGB")
         self.network_screen.blit(surf, (g_gui_left_frame_start, g_gui_top_space))
+        if not self.make_new_statistic:
+            self.statistic.save_network(fig, self.timestep)
         plt.close()
 
     def initial_draw_network(self):
@@ -297,23 +341,30 @@ class Gui:
             button.click_button(x,y)
         return False
 
-    def write_text(self, x, y, text, textsize = 14):
-        msg_object = pygame.font.SysFont('verdana', textsize).render(text, False, (255,255,255))
+    def write_text(self, x, y, text, textsize = 14, color = (255,255,255)):
+        msg_object = pygame.font.SysFont('verdana', textsize).render(text, False, color)
         msg_rect = msg_object.get_rect()
         msg_rect.topleft = (x, y)
         pygame.draw.rect(self.window, self.background_color, (x, y, 10000, msg_rect.height))
         self.window.blit(msg_object, msg_rect)
 
     def start(self):
-        self.started = not self.started
+        self.started = True
+
+    def stop(self):
+        self.started = False;
 
     def reset(self):
         self.voteomat.reset()
         self.timestep = 0
         self.initial_draw_network()
+        self.make_new_statistic = True
+        self.converged_label.visible = False
+        self.desktop.update()
+        self.desktop.draw()
+        self.update_slider()
         self.draw_histogram()
         self.draw_statistic()
-        self.make_new_statistic = True
         pygame.display.flip()
 
 if __name__=='__main__':

@@ -53,6 +53,9 @@ class Voteomat:
         self.network_func_name = func
         self.reset()
 
+    def set_network(self, G):
+        self.G = G
+
     def random_powerlaw_tree(self):
         self.G = networkx.random_powerlaw_tree(g_amount_nodes, tries= 10000)
 

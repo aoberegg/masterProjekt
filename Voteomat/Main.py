@@ -1,4 +1,6 @@
+
 import gui
+from pgu import gui as guipgu
 from pygame.locals import *
 from pygame import font
 import datetime
@@ -18,15 +20,18 @@ import defaultStyle
 import time
 
 
+
 class Gui:
 
     def __init__(self):
+        guipgu.FileDialog
         self.make_new_statistic = True
-        self.init_change = 0
+        self.change = 0
         self.voteomat = Voteomat()
         self.sliders = []
         self.buttons = []
         self.clicked = {}
+        self.statistic = None
 
         self.width = g_gui_width
         self.height = g_gui_height
@@ -53,7 +58,7 @@ class Gui:
         self.update_slider()
         self.counterforce_update_slider()
         self.initial_draw_network()
-        self.draw_histogram()
+        self.draw_and_save_histogram()
         self.draw_statistic()
 
         self.draw_settings()
@@ -70,8 +75,8 @@ class Gui:
 
                 self.update_surface()
 
-                if not self.init_change:
-                    self.init_change = change
+                if not self.change:
+                    self.change = change
                 else:
                     self.check_converged(change)
 
@@ -89,11 +94,13 @@ class Gui:
 
     def check_converged(self, change):
         a,b, std = self.voteomat.get_statistic(False, False, True)
-        if self.init_change * 0.1 > change and std < .1:
+        change_of_change = abs(self.change - change)
+        if change_of_change < 0.001 or std < .01:
             self.started = False
             self.statistic.network_converged(self.voteomat)
             self.make_new_statistic = True;
             self.converged_label.visible = True
+        self.change = change
 
     def update_surface(self):
         if self.timestep % 5 == 0:
@@ -110,16 +117,16 @@ class Gui:
 
 
     def draw_settings(self):
-        defaultStyle.init(gui)
-        self.desktop = gui.Desktop()
-        self.desktop.surf = self.window
-        self.draw_distribution_listbox()
-        self.draw_network_listbox()
-        self.draw_acceptance_text_box()
-        self.draw_neighbour_affecting_checkbox()
-        self.draw_candidates_affecting_checkbox()
-        self.draw_candidates_affected_checkbox()
-        self.draw_counter_force_affecting_checkbox()
+        #defaultStyle.init(gui)
+        #self.desktop = gui.Desktop()
+        #self.desktop.surf = self.window
+        #self.draw_distribution_listbox()
+       # self.draw_network_listbox()
+       # self.draw_acceptance_text_box()
+       # self.draw_neighbour_affecting_checkbox()
+       ## self.draw_candidates_affecting_checkbox()
+       # self.draw_candidates_affected_checkbox()
+       # self.draw_counter_force_affecting_checkbox()
 
     def draw_candidates_affecting_checkbox(self):
         self.write_text(g_gui_right_frame_start+20, 620, g_candidates_affecting_nodes, textsize = 14)
@@ -171,9 +178,9 @@ class Gui:
 
 
     def update_drawing(self):
-        self.draw_network()
+        self.draw_and_save_network()
         self.draw_statistic()
-        self.draw_histogram()
+        self.draw_and_save_histogram()
 
     def network_item_selected(self, widget):
         if widget.selectedIndex < len(widget.items):
@@ -207,6 +214,32 @@ class Gui:
         Button((self.width-(self.width-50), (self.height-100)), self, 'Start', func=self.start, stay_depressed = False)
         Button((self.width-(self.width-180), (self.height-100)), self, 'Stop', func=self.stop, stay_depressed = False)
         Button((self.width-(self.width-310), (self.height-100)), self, 'Reset', func=self.reset, stay_depressed = False)
+        Button((self.width-(self.width-440), (self.height-100)), self, 'Statistic', func=self.create_statistic_end, stay_depressed = False)
+        Button((self.width-(self.width-570), (self.height-100)), self, 'Load network', func=self.load_network, stay_depressed = False)
+        Button((self.width-(self.width-700), (self.height-100)), self, 'Save network', func=self.save_network, stay_depressed = False)
+
+    def load_network(self):
+        if self.statistic is None:
+            self.statistic = Statistic(str(datetime.datetime.now()), self.voteomat)
+            self.make_new_statistic = False
+        G = self.statistic.load_network_from_file()
+        if G is not None:
+            self.voteomat.set_network(G)
+            self.pos = networkx.spring_layout(G, iterations=100)
+            self.update_drawing()
+
+    def save_network(self):
+        if self.statistic is None:
+            self.statistic = Statistic(str(datetime.datetime.now()), self.voteomat)
+            self.make_new_statistic = False
+        self.statistic.save_network_in_file(self.voteomat.get_network(), self.timestep)
+
+    def create_statistic_end(self):
+        self.started = False
+        if self.statistic is not None:
+            self.statistic.network_converged(self.voteomat)
+        self.make_new_statistic = True;
+        self.reset()
 
     def draw_slider(self):
         self.slider1 = Slider((self.width-(self.width-50), (self.height-250)), "Political Orientation candidate 1", self,
@@ -222,17 +255,17 @@ class Gui:
            self.adjust_counterforce_right, self.voteomat.counter_force_right, 50, -50)
 
 
-    def adjust_candidate1_orientation(self, new_value):
+    def adjust_candidate1_orientation(self, new_value, from_move):
 
-        self.voteomat.set_orientation_candidate(0,new_value)
+        self.voteomat.set_orientation_candidate(0,new_value, not from_move)
 
-    def adjust_candidate2_orientation(self, new_value):
-        self.voteomat.set_orientation_candidate(1,new_value)
+    def adjust_candidate2_orientation(self, new_value, from_move):
+        self.voteomat.set_orientation_candidate(1,new_value, not from_move)
 
-    def adjust_counterforce_left(self, new_value):
+    def adjust_counterforce_left(self, new_value, from_move):
         self.voteomat.counter_force_left = new_value
 
-    def adjust_counterforce_right(self, new_value):
+    def adjust_counterforce_right(self, new_value, from_move):
         self.voteomat.counter_force_right = new_value
 
     def get_node_color(self, G):
@@ -249,7 +282,7 @@ class Gui:
                 node_color.append((0, value if value > color_threshold else color_threshold, 0))
         return node_color
 
-    def draw_histogram(self):
+    def draw_and_save_histogram(self):
         G = self.voteomat.get_network()
         orientation_list = []
         for node in G.nodes(data=True):
@@ -274,7 +307,7 @@ class Gui:
             self.statistic.save_histogram(fig, self.timestep)
         plt.close()
 
-    def draw_network(self):
+    def draw_and_save_network(self):
         G = self.voteomat.get_network()
         fig = plt.figure(1, figsize=(12, 7))
         networkx.draw(G, self.pos, node_color=self.get_node_color(G))
@@ -289,6 +322,7 @@ class Gui:
         self.network_screen.blit(surf, (g_gui_left_frame_start, g_gui_top_space))
         if not self.make_new_statistic:
             self.statistic.save_network(fig, self.timestep)
+            self.statistic.save_network_in_file(self.voteomat.get_network(), self.timestep)
         plt.close()
 
     def initial_draw_network(self):
@@ -363,7 +397,7 @@ class Gui:
         self.desktop.update()
         self.desktop.draw()
         self.update_slider()
-        self.draw_histogram()
+        self.draw_and_save_histogram()
         self.draw_statistic()
         pygame.display.flip()
 

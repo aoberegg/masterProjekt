@@ -30,6 +30,8 @@ g_counterforce_affecting_candidates = "Counterforce affecting candidates"
 
 g_amount_nodes = 200
 
+g_counterforce_mitigation = 10;
+
 g_left_party = 1
 g_right_party = 2
 

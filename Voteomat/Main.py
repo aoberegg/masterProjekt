@@ -24,7 +24,6 @@ import time
 class Gui:
 
     def __init__(self):
-        guipgu.FileDialog
         self.make_new_statistic = True
         self.change = 0
         self.voteomat = Voteomat()
@@ -117,16 +116,16 @@ class Gui:
 
 
     def draw_settings(self):
-        #defaultStyle.init(gui)
-        #self.desktop = gui.Desktop()
-        #self.desktop.surf = self.window
-        #self.draw_distribution_listbox()
-       # self.draw_network_listbox()
-       # self.draw_acceptance_text_box()
-       # self.draw_neighbour_affecting_checkbox()
-       ## self.draw_candidates_affecting_checkbox()
-       # self.draw_candidates_affected_checkbox()
-       # self.draw_counter_force_affecting_checkbox()
+        defaultStyle.init(gui)
+        self.desktop = gui.Desktop()
+        self.desktop.surf = self.window
+        self.draw_distribution_listbox()
+        self.draw_network_listbox()
+        self.draw_acceptance_text_box()
+        self.draw_neighbour_affecting_checkbox()
+        self.draw_candidates_affecting_checkbox()
+        self.draw_candidates_affected_checkbox()
+        self.draw_counter_force_affecting_checkbox()
 
     def draw_candidates_affecting_checkbox(self):
         self.write_text(g_gui_right_frame_start+20, 620, g_candidates_affecting_nodes, textsize = 14)

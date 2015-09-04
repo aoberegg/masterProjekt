@@ -55,6 +55,7 @@ class Voteomat:
 
     def set_network(self, G):
         self.G = G
+        self.statistic_up_to_date = False
 
     def random_powerlaw_tree(self):
         self.G = networkx.random_powerlaw_tree(g_amount_nodes, tries= 10000)
@@ -130,27 +131,27 @@ class Voteomat:
 
 
     def candidates_affect_node(self, node):
-        old_orientation = self.G.nodes(data=True)[node[0]][1]["orientation"]
-        if self.G.nodes(data=True)[node[0]][1]["orientation"] < 0:
-            new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"], self.candidates[1].orientation)
-            self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
+        old_orientation = self.G.nodes(data=True)[int(node[0])][1]["orientation"]
+        if self.G.nodes(data=True)[int(node[0])][1]["orientation"] < 0:
+            new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[int(node[0])][1]["orientation"], self.candidates[1].orientation)
+            self.G.nodes(data=True)[int(node[0])][1]["orientation"] = max(new_orientation, self.minOrientation)
         else:
-            new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"] , self.candidates[0].orientation)
-            self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
+            new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[int(node[0])][1]["orientation"] , self.candidates[0].orientation)
+            self.G.nodes(data=True)[int(node[0])][1]["orientation"] = max(new_orientation, self.minOrientation)
 
         return abs(old_orientation - new_orientation)
 
     def neighbour_affect_each_other(self, node):
         neighbours = self.G.neighbors(node[0])
-        old_orientation = self.G.nodes(data=True)[node[0]][1]["orientation"]
+        old_orientation = self.G.nodes(data=True)[int(node[0])][1]["orientation"]
         orientation_neighbours = 0
         for neighbour_node in neighbours:
-            orientation_neighbours += self.G.nodes(data=True)[neighbour_node][1]["orientation"]
-        new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[node[0]][1]["orientation"], orientation_neighbours / len(neighbours))
+            orientation_neighbours += self.G.nodes(data=True)[int(neighbour_node)][1]["orientation"]
+        new_orientation = self.calc_new_orientation(self.G.nodes(data=True)[int(node[0])][1]["orientation"], orientation_neighbours / len(neighbours))
         if new_orientation > 0:
-            self.G.nodes(data=True)[node[0]][1]["orientation"] = min(new_orientation, self.maxOrientation)
+            self.G.nodes(data=True)[int(node[0])][1]["orientation"] = min(new_orientation, self.maxOrientation)
         else:
-            self.G.nodes(data=True)[node[0]][1]["orientation"] = max(new_orientation, self.minOrientation)
+            self.G.nodes(data=True)[int(node[0])][1]["orientation"] = max(new_orientation, self.minOrientation)
 
         return abs(old_orientation - new_orientation)
 

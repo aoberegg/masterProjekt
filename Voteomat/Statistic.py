@@ -6,7 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Globals import *
 import tkFileDialog
-
+import _tkinter as tk
+import wx
 
 
 class Statistic:
@@ -179,8 +180,20 @@ class Statistic:
         nx.write_graphml(G,path)
         #nx.write_edgelist(G, path, data = True)
 
+    def get_path(self, wildcard):
+        app = wx.App(None)
+        style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+        dialog = wx.FileDialog(None, 'Open', wildcard=wildcard, style=style)
+        if dialog.ShowModal() == wx.ID_OK:
+            path = dialog.GetPath()
+        else:
+            path = None
+        dialog.Destroy()
+        return path
+
     def load_network_from_file(self):
-        path = tkFileDialog.askopenfilename(filetypes=(("Networkx network", ".nx"),   ("All Files", "*.*")));
+
+        path = self.get_path(("*.nx"))
         if path is not None:
             return nx.read_graphml(path)
         else:

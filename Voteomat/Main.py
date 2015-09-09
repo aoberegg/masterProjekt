@@ -1,6 +1,5 @@
 
 import gui
-from pgu import gui as guipgu
 from pygame.locals import *
 from pygame import font
 import datetime
@@ -10,7 +9,6 @@ from Slider import *
 from Button import *
 
 from Voteomat import Voteomat
-
 import networkx
 from networkx import *
 import matplotlib.pyplot as plt

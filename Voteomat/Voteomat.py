@@ -12,11 +12,12 @@ class Voteomat:
         self.network_func_name = g_newman_watts_strogats
         self.networkFunc = self.newman_watts_strogats
         self.networkFunc()
-        self.distribution_func_name = g_uniform_distribution
-        self.set_distribution_func()
+
         self.candidates = [];
         self.candidates.append(Candidate(0, g_left_party))
         self.candidates.append(Candidate(0, g_right_party))
+        self.distribution_func_name = g_uniform_distribution
+        self.set_distribution_func()
         self.counter_force_left = 0
         self.counter_force_right = 0
         self.acceptance = 0.05
@@ -90,7 +91,7 @@ class Voteomat:
         elif func == g_normal_left_and_right:
             self.distributionFunc = self.set_nodes_political_behaviour_left_and_right_distributed
         self.distribution_func_name = func
-        self.distributionFunc()
+        self.reset()
 
     def get_network(self):
         return self.G
@@ -123,7 +124,7 @@ class Voteomat:
         return change
 
     def candidates_get_affected_by_median(self):
-        median, avg, std = self.get_statistic(True, False,False)
+        median, avg, std = self.get_statistic()
         change = 0
         change += self.set_candidate_new(self.candidates[0], median)
         change += self.set_candidate_new(self.candidates[1], median)

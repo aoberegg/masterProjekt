@@ -8,9 +8,11 @@ class Candidate:
         self.orientation_over_timesteps = []
 
     def set_orientation(self, orientation, save_in_list=True):
+
         self.orientation = orientation
         if(save_in_list):
             self.orientation_over_timesteps.append(round(self.orientation,2))
+
 
 
     def get_orientation(self):

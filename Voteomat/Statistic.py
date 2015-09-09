@@ -39,6 +39,7 @@ class Statistic:
 
         self.statistic["node_with_highest_degree_centrality"] = []
         self.max_degree_node = max( nx.degree_centrality(voteomat.get_network()).items(),key = lambda x: x[1])[0]
+
         self.statistic["node_with_highest_degree_centrality"].append(voteomat.get_network().nodes(data = True)[self.max_degree_node][1]["orientation"])
         self.statistic["node_with_minimum_degree_centrality"] = []
         self.min_degree_node = min(nx.degree_centrality(voteomat.get_network()).items(), key = lambda x: x[1])[0]
@@ -143,7 +144,8 @@ class Statistic:
         handles = [handle_left_counterforce, handle_right_counterforce, handle_median, handle_avg, handle_std, handle_degree_centrality, handle_degree_centrality_min, handle_closeness_centrality, handle_betweenness_centrality]
         i = 1
         for candidate in voteomat.candidates:
-            candidate_handle, = plt.plot(x, candidate.orientation_over_timesteps, ':', label ='Candidate '+str(i), color= colors[color])
+            x2 = np.linspace(0, len(candidate.orientation_over_timesteps), len(candidate.orientation_over_timesteps))
+            candidate_handle, = plt.plot(x2, candidate.orientation_over_timesteps, ':', label ='Candidate '+str(i), color= colors[color])
             handles.append(candidate_handle)
             i += 1
             color += 1
@@ -195,6 +197,7 @@ class Statistic:
 
         path = self.get_path(("*.nx"))
         if path is not None:
-            return nx.read_graphml(path)
+            return nx.read_graphml(path, node_type=int)
         else:
             return None
+

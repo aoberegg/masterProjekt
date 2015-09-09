@@ -67,19 +67,22 @@ class Gui:
         self.converged_label = gui.Label((self.width-(self.width-50), self.height-20),style = style, parent = self.desktop, text = g_gui_text_converged)
         self.converged_label.visible = False
         while True:
+
             if self.started:
-                change = self.voteomat.timestep_network_discussion()
+
 
                 self.check_statistic()
 
                 self.update_surface()
 
+                change = self.voteomat.timestep_network_discussion()
+
+                self.timestep += 1
+
                 if not self.change:
                     self.change = change
                 else:
                     self.check_converged(change)
-
-                self.timestep += 1
 
             else:
                 time.sleep(0.1)
@@ -92,7 +95,7 @@ class Gui:
             pygame.display.flip()
 
     def check_converged(self, change):
-        a,b, std = self.voteomat.get_statistic(False, False, True)
+        a,b, std = self.voteomat.get_statistic()
         change_of_change = abs(self.change - change)
         if change_of_change < 0.001 or std < .01:
             self.started = False
@@ -210,12 +213,12 @@ class Gui:
         self.slider4.update_slider(self.voteomat.minOrientation)
 
     def draw_buttons(self):
-        Button((self.width-(self.width-50), (self.height-100)), self, 'Start', func=self.start, stay_depressed = False)
-        Button((self.width-(self.width-180), (self.height-100)), self, 'Stop', func=self.stop, stay_depressed = False)
-        Button((self.width-(self.width-310), (self.height-100)), self, 'Reset', func=self.reset, stay_depressed = False)
-        Button((self.width-(self.width-440), (self.height-100)), self, 'Statistic', func=self.create_statistic_end, stay_depressed = False)
-        Button((self.width-(self.width-570), (self.height-100)), self, 'Load network', func=self.load_network, stay_depressed = False)
-        Button((self.width-(self.width-700), (self.height-100)), self, 'Save network', func=self.save_network, stay_depressed = False)
+        Button((self.width-(self.width-50), (self.height-100)), self, 'Start', width =130, func=self.start, stay_depressed = False)
+        Button((self.width-(self.width-190), (self.height-100)), self, 'Stop', width =130, func=self.stop, stay_depressed = False)
+        Button((self.width-(self.width-330), (self.height-100)), self, 'Reset', width =130, func=self.reset, stay_depressed = False)
+        Button((self.width-(self.width-470), (self.height-100)), self, 'Statistic', width =130, func=self.create_statistic_end, stay_depressed = False)
+        Button((self.width-(self.width-610), (self.height-100)), self, 'Load network', width =130, func=self.load_network, stay_depressed = False)
+        Button((self.width-(self.width-750), (self.height-100)), self, 'Save network', width =130, func=self.save_network, stay_depressed = False)
 
     def load_network(self):
         if self.statistic is None:
@@ -232,7 +235,6 @@ class Gui:
             self.statistic = Statistic(str(datetime.datetime.now()), self.voteomat)
             self.make_new_statistic = False
         self.statistic.save_network_in_file(self.voteomat.get_network(), self.timestep)
-
     def create_statistic_end(self):
         self.started = False
         if self.statistic is not None:
